@@ -54,10 +54,12 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     lobbyState: null;
     lobbyGameState: null | Shared.LobbyGameState;
     lobbyUpdatesSubscribed: boolean;
+    lobbyGamesSeats: { [K in number]: string };
   }>({
     lobbyState: null,
     lobbyGameState: new Shared.LobbyGameState(),
     lobbyUpdatesSubscribed: false,
+    lobbyGamesSeats: {},
   });
 
   const { visible, showSnackbar, hideSnackbar, dispatch } = useSnackbar();
@@ -125,6 +127,7 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
             break;
           default:
             setMessage('Unrecognized type in status message received.');
+            break;
         }
       });
 
@@ -150,12 +153,12 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
             break;
           case Shared.StatusType.INLOBBY:
             if (lobby.lobbyUpdatesSubscribed) {
-              setGame((game) => ({
-                ...game,
-                gameName: null,
-                gameState: null,
-                phase: GameContentPhase.INLOBBY,
-              }));
+              // setGame((game) => ({
+              //   ...game,
+              //   gameName: null,
+              //   gameState: null,
+              //   phase: GameContentPhase.INLOBBY,
+              // }));
               setLobby((lobby) => ({
                 ...lobby,
                 lobbyState: data.lobbyState,
@@ -196,6 +199,7 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
             setLobby((lobby) => ({
               ...lobby,
               lobbyGameState: data.gameState,
+              lobbyGamesSeats: data.lobbyGamesSeats,
             }));
             console.log('successs');
             // this.socket.emit(Shared.ClientSocketEvent.UNSUBSCRIBELOBBYUPDATES);
@@ -241,6 +245,60 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
               'Unrecognized message received from server in response to request to create game. Please report this issue and try again later.',
             );
         }
+      });
+
+      onEventWithCB(Shared.ServerSocketEvent.JOINGAMEOUTCOME, (data) => {
+        switch (data.type) {
+          case Shared.JoinGameOutcome.ALREADYINGAME:
+            showSnackbar('You are in room.');
+            setMessage('You are in room.');
+            break;
+
+          case Shared.JoinGameOutcome.DOESNOTEXIST:
+            showSnackbar('Room is not existed.');
+            setMessage('Room is not existed.');
+            break;
+
+          case Shared.JoinGameOutcome.GAMEFULL:
+            showSnackbar('The room you are trying to join in is full.');
+            setMessage('The room you are trying to join in is full.');
+            break;
+
+          case Shared.JoinGameOutcome.GAMESTARTED:
+            showSnackbar('The room you are trying to join in has already started.');
+            setMessage('The room you are trying to join in has already started.');
+            break;
+
+          case Shared.JoinGameOutcome.MISSINGINFO:
+            showSnackbar('Missing info from server.');
+            setMessage('Missing info from server.');
+            break;
+
+          case Shared.JoinGameOutcome.SUCCESS:
+            setGame((game) => ({
+              ...game,
+              phase: GameContentPhase.INLOBBYGAME,
+              isLobbyGame: true,
+              gameName: data.gameName,
+            }));
+            setLobby((lobby) => ({
+              ...lobby,
+              lobbyGameState: data.gameState,
+              lobbyGamesSeats: data.lobbyGamesSeats,
+            }));
+            break;
+
+          default:
+            setMessage('Unrecognized type in status message received.');
+            break;
+        }
+      });
+
+      onEventWithCB(Shared.ServerSocketEvent.LOBBYGAMESEATSUPDATE, (data) => {
+        setLobby((lobby) => ({
+          ...lobby,
+          lobbyGamesSeats: data.lobbyGamesSeats,
+        }));
       });
     }
 
@@ -293,7 +351,22 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     }
   };
 
-  const joinGame = () => {};
+  const toggleSeatHandle = (seatNum?: number) => {
+    seatNum
+      ? emitEventWithData(Shared.ClientSocketEvent.LOBBYGAMETOGGLEASEAT, {
+          seatNum,
+          gameNum: game.gameName,
+        })
+      : emitEventWithData(Shared.ClientSocketEvent.LOBBYGAMETOGGLEASEAT, {
+          gameNum: game.gameName,
+        });
+  };
+
+  const joinGame = (roomNum: string) => {
+    emitEventWithData(Shared.ClientSocketEvent.JOINGAME, {
+      roomNum: roomNum,
+    });
+  };
 
   let content = null;
 
@@ -385,9 +458,14 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
       );
       break;
     case GameContentPhase.INLOBBYGAME:
-      // content = <LobbyGameWaiting username={username} lobbyGamestate={lobby.lobbyGameState} gameName={game.gameName}/>
-      console.log('lobbyGameState: ', lobby.lobbyGameState);
-      content = <LobbyGameWaiting gameName={game.gameName} lobbyGameState={lobby.lobbyGameState} />;
+      content = (
+        <LobbyGameWaiting
+          username={username}
+          lobbyGameState={lobby.lobbyGameState}
+          lobbyGamesSeats={lobby.lobbyGamesSeats}
+          toggleSeat={toggleSeatHandle}
+        />
+      );
       break;
     case GameContentPhase.DISCONNECTED:
       content = (
@@ -420,7 +498,7 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
       {game.phase === GameContentPhase.CREATEGAME && (
         <BackButton goBack={navigateLobbyFromCreate} />
       )}
-      {game.phase === GameContentPhase.INLOBBYGAME && <RoomHeader roomNum={game.gameName}/>}
+      {game.phase === GameContentPhase.INLOBBYGAME && <RoomHeader roomNum={game.gameName} />}
       <ProfileAvatar
         username={username}
         logout={() =>
