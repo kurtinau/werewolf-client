@@ -21,39 +21,56 @@ import {
   Subheading,
   ToggleButton,
   Text,
+  Switch,
+  Dialog,
 } from 'react-native-paper';
 import { getStatusBarHeight } from 'react-native-status-bar-height';
 import { theme } from '../../core/theme';
 import Info from './Info';
 import Seat from './Seat';
-import { LobbyGameState } from '../../common/Shared';
+import { ClientMessageType, LobbyGameState } from '../../common/Shared';
+import Fab from '../Fab';
+import { gameActionMessage } from '../../utils/Socket';
+import Paragraph from '../Paragraph';
 
 const LobbyGameWaiting = ({
   username,
   lobbyGameState,
-  lobbyGamesSeats,
   toggleSeat,
+  shuffleCards,
+  roleRevealed,
+  wildModeToggle,
+  sendMessage,
 }: {
   username: string;
-  lobbyGameState: LobbyGameState | null;
-  lobbyGamesSeats: { [K in number]: string };
+  lobbyGameState: LobbyGameState;
   toggleSeat: (seatNum?: number) => void;
+  shuffleCards: (wild?: boolean) => void;
+  roleRevealed: () => void;
+  wildModeToggle: () => void;
+  sendMessage: (message: gameActionMessage) => void;
 }) => {
-  const [state, setState] = useState({ open: false });
+  const [visible, setVisible] = useState(false);
+  const hideDialog = () => setVisible(false);
+  const showDialog = () => setVisible(true);
 
-  const window = useWindowDimensions();
-  const onStateChange = ({ open }: { open: boolean }) => setState({ open });
+  const { maxPlayers, wildMode, owner, configOverview, seats, players } = lobbyGameState;
 
-  const { open } = state;
+  console.log('lobbygameWaiting__lobbyGameState:: ', lobbyGameState);
 
   const toggleSeatHandle = (seatNum: number) => {
     // check if you sit at a seat or not
-    if (Object.values(lobbyGamesSeats).includes(username)) {
+    if (Object.values(seats).includes(username)) {
       //you sit at a seat,check the seat you pressed
-      if (seatNum in lobbyGamesSeats && lobbyGamesSeats[seatNum]) {
-        if (lobbyGamesSeats[seatNum] === username) {
+      if (seatNum in seats && seats[seatNum]) {
+        if (seats[seatNum] === username) {
           //stand up from seat
-          toggleSeat();
+          if(players[username].role !== -1){
+            showDialog();
+          }else{
+            toggleSeat();
+          }
+          console.log('stand up from ', seatNum);
         } else {
           Alert.alert('You cannot sit at the seat that other players taken.');
         }
@@ -62,112 +79,123 @@ const LobbyGameWaiting = ({
       }
     } else {
       //you don't take any seats.
-      if (seatNum in lobbyGamesSeats && lobbyGamesSeats[seatNum]) {
+      if (seatNum in seats && seats[seatNum]) {
         //press seats that other players taken
         Alert.alert('You cannot sit at the seat that other players taken.');
       } else {
         //take a seat
+        console.log('take a seat: ', seatNum);
         toggleSeat(seatNum);
       }
     }
   };
 
-  const maxPlayers = lobbyGameState?.maxPlayers;
-  // console.log('lobbyGameState.owner:: ', lobbyGameState.owner);
+  const checkAllPlayersHaveAseat = () => (seats ? Object.keys(seats).length === maxPlayers : false);
+
+  const checkAllAttendedPlayersHaveAseat = () => {
+    return seats ? Object.keys(seats).length === Object.keys(players).length : false;
+  };
+
+  const startGamePressedHandle = (wild: boolean) => {
+    if (players[username].role === -1) {
+      Alert.alert('Please shuffle cards before starting game.');
+    } else {
+      if (wild) {
+        if (checkAllAttendedPlayersHaveAseat()) {
+          sendMessage({ type: ClientMessageType.GAMESTART });
+        }
+      } else {
+        if (checkAllPlayersHaveAseat()) {
+          sendMessage({ type: ClientMessageType.GAMESTART });
+        } else {
+          Alert.alert('There are players not ready or Not enough players.');
+        }
+      }
+    }
+  };
+
+  const shufflePressedHandle = (wild: boolean) => {
+    if (wild) {
+      if (checkAllAttendedPlayersHaveAseat()) {
+        console.log('wild mode shuffle cards called.');
+        shuffleCards(wild);
+      } else {
+        Alert.alert('All players must have a sit.');
+      }
+    } else {
+      if (checkAllPlayersHaveAseat()) {
+        shuffleCards();
+      } else {
+        Alert.alert('There are players not ready or Not enough players.');
+      }
+    }
+  };
 
   return (
     <>
-      {lobbyGameState && (
-        <ScrollView style={styles.container}>
-          <View style={styles.playerView}>
-            {[...Array(maxPlayers)].map((x, i) => (
-              <Seat
-                key={i}
-                seatNum={i + 1}
-                toggleSeat={toggleSeatHandle}
-                username={lobbyGamesSeats[i + 1]}
-                owner = {lobbyGameState.owner}
-              />
-            ))}
-          </View>
-          <Divider />
-          {/* <Info /> */}
-          {/* {Fab(window.width)} */}
-        </ScrollView>
+      {lobbyGameState && lobbyGameState.players &&(
+        <>
+          <ScrollView style={styles.container}>
+            <View style={styles.playerView}>
+              {[...Array(maxPlayers)].map((x, i) => {
+                return (
+                  <Seat
+                    key={i}
+                    seatNum={i + 1}
+                    toggleSeat={toggleSeatHandle}
+                    username={seats[i + 1]}
+                    owner={owner}
+                  />
+                );
+              })}
+            </View>
+            <Divider />
+            {/* <Info /> */}
+          </ScrollView>
+          <Fab
+            role={players[username]?.role}
+            wildMode={wildMode}
+            startGamePressed={startGamePressedHandle}
+            shufflePressed={shufflePressedHandle}
+            yourSeatNum={players[username]?.seatNum}
+            gameConfigOverview={configOverview}
+            roomOwner={username === owner}
+            roleRevealed={roleRevealed}
+            wildModeToggle={wildModeToggle}
+            inGameState={false}
+          />
+          <Portal>
+            <Dialog visible={visible} onDismiss={hideDialog}>
+              <Dialog.Content>
+                <Paragraph>
+                  Are you sure to change seat? Press OK will re-shuffle cards.
+                </Paragraph>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button onPress={hideDialog}>Cancel</Button>
+                <Button
+                  onPress={() => {
+                    toggleSeat();
+                    hideDialog();
+                  }}
+                >
+                  Ok
+                </Button>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
+        </>
       )}
-      {/* <Portal>
-        <FAB.Group
-          visible={true}
-          fabStyle={{ position: 'absolute', alignSelf: 'center', bottom: 0 }}
-          style={[styles.fab]}
-          open={open}
-          icon={open ? 'calendar-today' : 'plus'}
-          actions={[
-            {
-              icon: 'plus',
-              onPress: () => console.log('Pressed add'),
-              style: { paddingRight: 50 },
-            },
-            {
-              icon: 'star',
-              label: 'Star',
-              onPress: () => console.log('Pressed star'),
-              // style: { position: 'absolute', alignSelf: 'center', bottom: 0, }
-            },
-            {
-              icon: 'email',
-              label: 'Email',
-              onPress: () => console.log('Pressed email'),
-            },
-            {
-              icon: 'bell',
-              label: 'Remind',
-              onPress: () => console.log('Pressed notifications'),
-              small: false,
-            },
-          ]}
-          onStateChange={onStateChange}
-          onPress={() => {
-            if (open) {
-              // do something if the speed dial is open
-            }
-          }}
-        />
-      </Portal> */}
     </>
   );
 };
 
 export default LobbyGameWaiting;
 
-function Fab(width) {
-  return (
-    <View style={styles.fabView}>
-      <FAB
-        style={{ position: 'absolute', margin: 0, right: width / 2, bottom: 20 }}
-        small
-        icon="plus"
-        onPress={() => console.log('Pressed')}
-      />
-      <FAB
-        style={{ position: 'absolute', margin: 16, alignSelf: 'center', bottom: 0 }}
-        small
-        icon="minus"
-        onPress={() => console.log('Pressed')}
-      />
-      <FAB
-        style={{ position: 'absolute', margin: 16, right: 100, bottom: 0 }}
-        small
-        icon="plus"
-        onPress={() => console.log('Pressed')}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     borderTopWidth: 1,
+    width: '100%',
     flex: 1,
     flexDirection: 'column',
     marginTop: getStatusBarHeight() + 40,
@@ -180,19 +208,6 @@ const styles = StyleSheet.create({
   infoView: {
     // flex: 5,
     marginTop: 10,
-  },
-  fabView: {
-    // flex: 1,
-  },
-  fab: {
-    position: 'absolute',
-    // margin: 40,
-    right: 0,
-    bottom: 0,
-    // alignSelf: 'center',
-    // paddingRight: 50
-    // justifyContent: 'center',
-    // alignItems: 'center',
   },
   bottom: {
     position: 'absolute',

@@ -28,11 +28,27 @@ export const Abilities = {
   },
 };
 
+export const ClientMessageType = {
+  GAMESTART: "gameStart",
+  GAMESTATEREQ: "gameStateReq",
+  SUGGESTTARGET: "suggestTarget",
+  VOTECAST: "voteCast",
+  ACKNOWLEDGE: "acknowledge", // acknowledge results of end of day and end of night
+}
+
+export const ServerMessageType = {
+  GAMESTARTFAIL: "gameStartFail",
+  GAMESTARTSUCCESS: "gameStartSuccess",
+  GAMESTATEINFO: "gameStateInfo",
+  ACKNOWLEDGEMENT: "acknowledgement",
+  VOTECAST: "voteCast",
+}
+
 export const ServerSocketEvent = {
   // SYSTEMNOTICE: "systemNotice", // notices from server unrelated to the happenings inside the game
   INITIALSTATUSREPLY: "initialStatusReply", // excludes state details
   STATUSREPLY: "statusReply", // reply to STATUSREQUEST by client containing game information
-  // GAMEACTION: "gameAction", // action related to the context of the game itself
+  GAMEACTION: "gameAction", // action related to the context of the game itself
   LOBBYGAMEUPDATE: "lobbyGameUpdate",
   // LOBBYUPDATE: "lobbyUpdate", // update to the status of the game lobby (e.g. a player joins/leaves a game)
   // LOBBYSTATEREPLY: "lobbyState", // message containing complete state of lobby
@@ -50,11 +66,11 @@ export const ServerSocketEvent = {
   // LOBBYGAMESTATEUPDATE: "lobbyGameStateUpdate"
   USEREXISTED:"usernameExisted",
   CONNECTSUCCESS:"connectSuccess",
-  LOBBYGAMESEATSUPDATE:"lobbyGameSeatsUpdate",
+  SHUFFLECARDSOUTCOME: "shuffleCardsOutcome",
 };
 
 export const ClientSocketEvent = {
-    // GAMEACTION: "gameAction", // action related to the context of the game itself
+    GAMEACTION: "gameAction", // action related to the context of the game itself
     INITIALSTATUSREQUEST: "initialStatusRequest", // request for reply that excludes state details
     STATUSREQUEST: "statusRequest", // request from client asking for the client's status (e.g. whether it is in a game)
     // LOBBYSTATEREQUEST: "lobbyStateRequest", // client message asking for complete state of lobby
@@ -64,7 +80,10 @@ export const ClientSocketEvent = {
     JOINGAME: "joinGame",
     CREATEGAME: "createGame",
     // LEAVEGAME: "leaveGame", // leave game in lobby before it has started. Currenlty no way to leave started games.
-    LOBBYGAMETOGGLEASEAT: "lobbyGameToggleASeat"
+    LOBBYGAMETOGGLEASEAT: "lobbyGameToggleASeat",
+    SHUFFLECARDS:"shuffleCards",
+    REVEALROLE:"revealRole",
+    TOGGLEGAMEMODE: "toggleGameMode",
 }
 
 export const CreateGameOutcome = {
@@ -101,6 +120,9 @@ export const LobbyGameUpdate = {
   PLAYERJOINED: "playerJoined",
   GAMEDELETED: "gameDeleted",
   GAMESTARTED: "gameStarted",
+  SEATSCHANGED: "seatsChanged",
+  SHUFFLECARDS: "shuffleCards",
+  MODECHANGED: "modeChanged"
 };
 
 
@@ -110,15 +132,104 @@ export const StatusType = {
   INLOBBY: "inLobby"
 }
 
+export class LobbyPlayerDetail {
+  name: string;
+  role: number;
+  seatNum: number;
+  roleRevealed: boolean;
+  constructor(name: string) {
+    this.name = name;
+    this.seatNum = 0;
+    this.role = -1;
+    this.roleRevealed = false;
+  }
+}
+
 export class LobbyGameState {
   maxPlayers: number;
   numWerewolves: number;
-  players: Array<string>;
+  players: {[K in string]: LobbyPlayerDetail};
   owner: string;
+  wildMode: boolean;
+  seats: { [K in number]: string };
+  configOverview: string;
   constructor() {
     this.maxPlayers = 0;
     this.numWerewolves = 0;
-    this.players = [];
+    this.players = {};
     this.owner = "";
+    this.wildMode = false;
+    this.seats = {};
+    this.configOverview = "";
   }
 }
+
+export class RoomState{
+  owner: string;
+  wildMode: boolean;
+  seats: { [K in number]: string };
+  configOverview: string;
+  constructor(){
+    this.owner='';
+    this.wildMode=false;
+    this.seats = {};
+    this.configOverview = "";
+  }
+}
+
+export class PlayerDetail {
+  isWerewolf: boolean;
+  isAlive: boolean;
+  hasSkills: boolean;
+  role: number;
+  seatNum: number;
+  constructor(isWerewolf: boolean, hasSkills: boolean,role:number,seatNum:number) {
+    this.isWerewolf = isWerewolf;
+    this.isAlive = true;
+    this.hasSkills = false;
+    this.role = -1;
+    this.seatNum = 0;
+  }
+}
+
+export class GameState {
+  phase:string;
+    players: {[K in string]: PlayerDetail};
+    votes: {};
+    acks: Array<string>;
+    chosenPlayer : string
+    constructor(){
+        this.phase = Phases.STARTED
+        this.players = {} // player name -> Shared.PlayerDetails object
+        this.votes = {} // player name -> value; true = yea, false = nay
+        this.acks = [] // acknowledgements for information displayed in certain phases
+        this.chosenPlayer = '' // player chosen for voting or player just killed
+    }
+}
+
+export interface GameConfig {
+  // numplayer: number;
+  villager: number;
+  werewolf: number;
+  oldMan?: boolean;
+  seer?: boolean;
+  fool?: boolean;
+  hunter?: boolean;
+  bodyguard?: boolean;
+  witch?: boolean;
+  alphawolf?: boolean;
+  mysticwolf?: boolean;
+}
+
+export const RolesCode = {
+  villager: 0,
+  werewolf: 1,
+  oldMan: 2,
+  seer: 3,
+  fool: 4,
+  hunter: 5,
+  bodyguard: 6,
+  witch: 7,
+  alphawolf: 8,
+  mysticwolf: 9,
+};

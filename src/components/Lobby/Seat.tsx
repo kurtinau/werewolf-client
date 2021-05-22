@@ -10,16 +10,16 @@ const Seat = ({
   owner,
 }: {
   seatNum: number;
-  toggleSeat: (seatNum: number) => void;
+  toggleSeat?: (seatNum: number) => void;
   username: string | undefined;
   owner: string;
-}) => {
+}): JSX.Element => {
   const window = useWindowDimensions();
   const windowWidth = window.width;
   return (
     <Pressable
       onPress={() => {
-        toggleSeat(seatNum);
+        toggleSeat ? toggleSeat(seatNum) : null;
       }}
     >
       <Image
@@ -30,11 +30,16 @@ const Seat = ({
         ]}
       />
       <Text style={{ marginLeft: 10 }}>{username ? username : 'Empty'}</Text>
-      {username && (username == owner) && (
+      <Avatar.Icon
+        size={25}
+        icon={'numeric-' + seatNum + '-box'}
+        style={{ position: 'absolute', left: 3, top: 3 }}
+      />
+      {username && username == owner && (
         <Avatar.Icon
           size={20}
           icon="home-outline"
-          style={{ position: 'absolute', left: 3, top: 3, backgroundColor: 'red' }}
+          style={{ position: 'absolute', right: 3, top: 3, backgroundColor: 'red' }}
         />
       )}
     </Pressable>

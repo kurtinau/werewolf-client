@@ -36,6 +36,7 @@ export type GAME_SETTING_TYPE = {
 };
 
 export type GAME_SETTING_DATA_TYPE = {
+  // configOverview: string;
   count: number;
   villager: number;
   numVillagers: number;
@@ -99,8 +100,6 @@ export default function CreateGame({
     getNumWerewolves,
     getMaxPlayers,
   } = useGameSettings();
-
-  console.log('initial count: ', getMaxPlayers());
 
   const villagersSettingData: ROLE_SETTING_TYPE[] = [
     {
@@ -234,68 +233,81 @@ export default function CreateGame({
             <SettingSection key={index} data={item} />
           ))}
         </View>
+        {(witch || bodyguard) && (
+          <View style={styles.villagersContainer}>
+            <List.Section title="技能配置">
+              <Divider />
+              {witch && (
+                <>
+                  <List.Accordion
+                    title={elixirAbilitySettingData[elixirAbility].title}
+                    left={(props) => (
+                      <Text style={{ color: props.color, paddingRight: 30 }}>解药</Text>
+                    )}
+                    expanded={elixirSkillExpanded}
+                    onPress={() => setElixirSkillExpanded(!elixirSkillExpanded)}
+                  >
+                    {Object.values(elixirAbilitySettingData).map((item, index) => (
+                      <List.Item
+                        key={index}
+                        title={item.title}
+                        onPress={() => {
+                          setElixirSkillExpanded(!elixirSkillExpanded);
+                          item.onPress();
+                        }}
+                      />
+                    ))}
+                  </List.Accordion>
+                  <Divider />
 
-        <View style={styles.villagersContainer}>
-          <List.Section title="技能配置">
-            <Divider />
-            <List.Accordion
-              title={elixirAbilitySettingData[elixirAbility].title}
-              left={(props) => <Text style={{ color: props.color, paddingRight: 30 }}>解药</Text>}
-              expanded={elixirSkillExpanded}
-              onPress={() => setElixirSkillExpanded(!elixirSkillExpanded)}
-            >
-              {Object.values(elixirAbilitySettingData).map((item, index) => (
-                <List.Item
-                  key={index}
-                  title={item.title}
-                  onPress={() => {
-                    setElixirSkillExpanded(!elixirSkillExpanded);
-                    item.onPress();
-                  }}
-                />
-              ))}
-            </List.Accordion>
-            <Divider />
+                  <List.Accordion
+                    title={poisonAbilitySettingData[poisonAbility].title}
+                    left={(props) => (
+                      <Text style={{ color: props.color, paddingRight: 30 }}>毒药</Text>
+                    )}
+                    expanded={poisonSkillExpanded}
+                    onPress={() => setPoisonSkillExpanded(!poisonSkillExpanded)}
+                  >
+                    {Object.values(poisonAbilitySettingData).map((item, index) => (
+                      <List.Item
+                        key={index}
+                        title={item.title}
+                        onPress={() => {
+                          setPoisonSkillExpanded(!poisonSkillExpanded);
+                          item.onPress();
+                        }}
+                      />
+                    ))}
+                  </List.Accordion>
 
-            <List.Accordion
-              title={poisonAbilitySettingData[poisonAbility].title}
-              left={(props) => <Text style={{ color: props.color, paddingRight: 30 }}>毒药</Text>}
-              expanded={poisonSkillExpanded}
-              onPress={() => setPoisonSkillExpanded(!poisonSkillExpanded)}
-            >
-              {Object.values(poisonAbilitySettingData).map((item, index) => (
-                <List.Item
-                  key={index}
-                  title={item.title}
-                  onPress={() => {
-                    setPoisonSkillExpanded(!poisonSkillExpanded);
-                    item.onPress();
-                  }}
-                />
-              ))}
-            </List.Accordion>
+                  <Divider />
+                </>
+              )}
 
-            <Divider />
-            <List.Accordion
-              title={bodyguardAbilitySettingData[bodyguardAbility].title}
-              left={(props) => <Text style={{ color: props.color, paddingRight: 30 }}>守卫</Text>}
-              expanded={bodyGuardSkillExpanded}
-              onPress={() => setBodyGuardSkillExpanded(!bodyGuardSkillExpanded)}
-            >
-              {Object.values(bodyguardAbilitySettingData).map((item, index) => (
-                <List.Item
-                  key={index}
-                  title={item.title}
-                  onPress={() => {
-                    setBodyGuardSkillExpanded(!bodyGuardSkillExpanded);
-                    item.onPress();
-                  }}
-                />
-              ))}
-            </List.Accordion>
-          </List.Section>
-        </View>
-
+              {bodyguard && (
+                <List.Accordion
+                  title={bodyguardAbilitySettingData[bodyguardAbility].title}
+                  left={(props) => (
+                    <Text style={{ color: props.color, paddingRight: 30 }}>守卫</Text>
+                  )}
+                  expanded={bodyGuardSkillExpanded}
+                  onPress={() => setBodyGuardSkillExpanded(!bodyGuardSkillExpanded)}
+                >
+                  {Object.values(bodyguardAbilitySettingData).map((item, index) => (
+                    <List.Item
+                      key={index}
+                      title={item.title}
+                      onPress={() => {
+                        setBodyGuardSkillExpanded(!bodyGuardSkillExpanded);
+                        item.onPress();
+                      }}
+                    />
+                  ))}
+                </List.Accordion>
+              )}
+            </List.Section>
+          </View>
+        )}
         <Button
           icon="cog-transfer"
           mode="contained"
@@ -303,10 +315,12 @@ export default function CreateGame({
             const maxPlayers = getMaxPlayers();
             const numWerewolves = getNumWerewolves();
             const numVillagers = maxPlayers - numWerewolves;
-            console.log('count:: ', maxPlayers);
+            console.log('maxPlayers: ', maxPlayers);
+            console.log('numWerewolves: ', numWerewolves);
+            console.log('numVillagers: ', numVillagers);
             if (maxPlayers <= 4) {
               Alert.alert('No enough players.');
-            } else if (numVillagers <= numWerewolves * 2) {
+            } else if (numVillagers < numWerewolves * 2) {
               Alert.alert('Too many werewolves.');
             } else if (numWerewolves < 1) {
               Alert.alert('No enough werewolves.');
@@ -324,6 +338,7 @@ export default function CreateGame({
         <Dialog visible={visible} onDismiss={hideDialog}>
           <Dialog.Content>
             <Paragraph>你的配置: {getGameConfig()}</Paragraph>
+            <Paragraph>玩家人数: {getMaxPlayers()}</Paragraph>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={hideDialog}>Cancel</Button>

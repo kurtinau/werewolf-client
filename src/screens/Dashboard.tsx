@@ -12,6 +12,7 @@ import {
   emitEvent,
   connectSocket,
   emitEventWithData,
+  gameActionMessage,
 } from '../utils/Socket';
 import { useSnackbar } from '../context/SnackbarProvider';
 import * as Shared from '../common/Shared';
@@ -22,6 +23,7 @@ import { GameSettingsProvider } from '../context/GameSettingsProvider';
 import BackButton from '../components/BackButton';
 import LobbyGameWaiting from '../components/Lobby/LobbyGameWaiting';
 import RoomHeader from '../components/RoomHeader';
+import InGame from '../components/InGame';
 
 const GameContentPhase = {
   INITIAL: 'initial',
@@ -42,30 +44,36 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     socketConnectTimeout: null,
     socketGeneralError: null,
   });
-  const [game, setGame] = useState({
+  const [game, setGame] = useState<{
+    phase: string;
+    isLobbyGame: boolean;
+    message: string;
+    gameState: Shared.GameState;
+    gameName: string;
+    roomState: Shared.RoomState;
+  }>({
     phase: GameContentPhase.INITIAL,
     isLobbyGame: false,
     message: '',
-    gameState: null,
+    gameState: new Shared.GameState(),
     gameName: '',
+    roomState: new Shared.RoomState(),
   });
 
   const [lobby, setLobby] = useState<{
-    lobbyState: null;
-    lobbyGameState: null | Shared.LobbyGameState;
-    lobbyUpdatesSubscribed: boolean;
-    lobbyGamesSeats: { [K in number]: string };
+    lobbyGameState: Shared.LobbyGameState;
   }>({
-    lobbyState: null,
     lobbyGameState: new Shared.LobbyGameState(),
-    lobbyUpdatesSubscribed: false,
-    lobbyGamesSeats: {},
   });
 
   const { visible, showSnackbar, hideSnackbar, dispatch } = useSnackbar();
 
   const setMessage = (msg: string) => {
     setGame((game) => ({ ...game, message: msg }));
+  };
+
+  const setGameConfigOverview = (overview: string) => {
+    setGame((game) => ({ ...game, gameConfigOverview: overview }));
   };
 
   const setPhase = (newPhase: string) => {
@@ -114,16 +122,16 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
               isLobbyGame: true,
               phase: GameContentPhase.PREVIOUSSTATUSPAGE,
             }));
-            setLobby((lobby) => ({ ...lobby, lobbyGameState: null }));
+            setLobby((lobby) => ({ ...lobby, lobbyGameState: new Shared.LobbyGameState() }));
             break;
           case Shared.StatusType.INLOBBY:
             setGame((game) => ({
               ...game,
               gameName: '',
-              gameState: null,
+              isLobbyGame: false,
               phase: GameContentPhase.PREVIOUSSTATUSPAGE,
             }));
-            setLobby((lobby) => ({ ...lobby, llobbyState: null, lobbyGameState: null }));
+            setLobby((lobby) => ({ ...lobby, lobbyGameState: new Shared.LobbyGameState() }));
             break;
           default:
             setMessage('Unrecognized type in status message received.');
@@ -140,6 +148,7 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
               isLobbyGame: false,
               gameName: data.gameName,
               gameState: data.gameState,
+              roomState: data.roomState,
             }));
             break;
           case Shared.StatusType.INLOBBYGAME:
@@ -149,36 +158,18 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
               isLobbyGame: true,
               gameName: data.gameName,
             }));
-            setLobby((lobby) => ({ ...lobby, lobbyGameState: data.gameState }));
+            setLobby((lobby) => ({
+              ...lobby,
+              lobbyGameState: data.lobbyGameState,
+            }));
             break;
           case Shared.StatusType.INLOBBY:
-            if (lobby.lobbyUpdatesSubscribed) {
-              // setGame((game) => ({
-              //   ...game,
-              //   gameName: null,
-              //   gameState: null,
-              //   phase: GameContentPhase.INLOBBY,
-              // }));
-              setLobby((lobby) => ({
-                ...lobby,
-                lobbyState: data.lobbyState,
-                lobbyGameState: null,
-              }));
-            } else {
-              console.log('In lobby...');
-              setGame((game) => ({
-                ...game,
-                // gameName: null,
-                // gameState: null,
-                phase: GameContentPhase.INLOBBY,
-              }));
-              // setLobby((lobby) => ({
-              //   ...lobby,
-              //   lobbyState: null,
-              //   lobbyGameState: null,
-              // }));
-              // emitEvent(Shared.ClientSocketEvent.SUBSCRIBELOBBYUPDATES);
-            }
+            setGame((game) => ({
+              ...game,
+              // gameName: null,
+              // gameState: null,
+              phase: GameContentPhase.INLOBBY,
+            }));
             break;
           default:
             setMessage('Unrecognized type in status message received.');
@@ -198,52 +189,68 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
             }));
             setLobby((lobby) => ({
               ...lobby,
-              lobbyGameState: data.gameState,
-              lobbyGamesSeats: data.lobbyGamesSeats,
+              lobbyGameState: data.lobbyGameState,
             }));
             console.log('successs');
             // this.socket.emit(Shared.ClientSocketEvent.UNSUBSCRIBELOBBYUPDATES);
             break;
           case Shared.CreateGameOutcome.ALREADYINGAME:
-            setMessage(
-              'Server reports that you are already in a game and must leave it before creating a new one. Please report this issue and try again later.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Server reports that you are already in a game and must leave it before creating a new one. Please report this issue and try again later.',
+            }));
             // this.requestStateDetails()
             break;
           case Shared.CreateGameOutcome.TOOMANYWEREWOLVES:
-            setMessage(
-              'Server reports that the game creation request specified too many werewolves. This outcome implies a inconsistency between the client and server. Please report this issue and try a smaller number of werewolves.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Server reports that the game creation request specified too many werewolves. This outcome implies a inconsistency between the client and server. Please report this issue and try a smaller number of werewolves.',
+            }));
             break;
           case Shared.CreateGameOutcome.NOTENOUGHWEREWOLVES:
-            setMessage(
-              'Server reports that the game creation request specified too few werewolves. This outcome implies a inconsistency between the client and server. Please report this issue and try a larger number of werewolves.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Server reports that the game creation request specified too few werewolves. This outcome implies a inconsistency between the client and server. Please report this issue and try a larger number of werewolves.',
+            }));
             break;
           case Shared.CreateGameOutcome.NOTENOUGHPLAYERS:
-            setMessage(
-              'Server reports that the game creation request specified too few players. This outcome implies a inconsistency between the client and server. Please report this issue and try a larger number of players.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Server reports that the game creation request specified too few players. This outcome implies a inconsistency between the client and server. Please report this issue and try a larger number of players.',
+            }));
             break;
           case Shared.CreateGameOutcome.NAMEEXISTS:
-            setMessage(
-              'There already exists a game with the name you tried to create. Please use a different name.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'There already exists a game with the name you tried to create. Please use a different name.',
+            }));
             break;
           case Shared.CreateGameOutcome.MISSINGINFO:
-            setMessage(
-              'Protocol mismatch between the client and server. Please report this issue and try again later.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Protocol mismatch between the client and server. Please report this issue and try again later.',
+            }));
             break;
           case Shared.CreateGameOutcome.INTERNALERROR:
-            setMessage(
-              'Internal error encountered by server when processing request to create game. Please try again later.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Internal error encountered by server when processing request to create game. Please try again later.',
+            }));
             break;
           default:
-            setMessage(
-              'Unrecognized message received from server in response to request to create game. Please report this issue and try again later.',
-            );
+            setGame((game) => ({
+              ...game,
+              message:
+                'Unrecognized message received from server in response to request to create game. Please report this issue and try again later.',
+            }));
+            break;
         }
       });
 
@@ -283,8 +290,7 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
             }));
             setLobby((lobby) => ({
               ...lobby,
-              lobbyGameState: data.gameState,
-              lobbyGamesSeats: data.lobbyGamesSeats,
+              lobbyGameState: data.lobbyGameState,
             }));
             break;
 
@@ -294,11 +300,74 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
         }
       });
 
-      onEventWithCB(Shared.ServerSocketEvent.LOBBYGAMESEATSUPDATE, (data) => {
-        setLobby((lobby) => ({
-          ...lobby,
-          lobbyGamesSeats: data.lobbyGamesSeats,
-        }));
+      onEventWithCB(Shared.ServerSocketEvent.LOBBYGAMEUPDATE, (data) => {
+        console.log('Lobby Game Update Return: ', data);
+        switch (data.type) {
+          case Shared.LobbyGameUpdate.SEATSCHANGED:
+            setLobby((lobby) => ({
+              ...lobby,
+              lobbyGameState: data.lobbyGameState,
+            }));
+            break;
+          case Shared.LobbyGameUpdate.PLAYERJOINED:
+            let notification = 'Player join in the room.';
+            setLobby((lobby) => {
+              if (
+                lobby.lobbyGameState?.wildMode &&
+                lobby.lobbyGameState.players[lobby.lobbyGameState.owner].role !== -1
+              ) {
+                notification = 'Player join in the room, the roles card must be shuffled again.';
+              }
+              return {
+                ...lobby,
+                lobbyGameState: data.lobbyGameState,
+              };
+            });
+            showSnackbar(notification);
+            break;
+          case Shared.LobbyGameUpdate.SHUFFLECARDS:
+            setLobby((lobby) => ({
+              ...lobby,
+              lobbyGameState: data.lobbyGameState,
+            }));
+            showSnackbar('Shuffle cards successfully.');
+            break;
+          case Shared.LobbyGameUpdate.MODECHANGED:
+            console.log('wild mode return: ', data.gameState);
+            setLobby((lobby) => ({
+              ...lobby,
+              lobbyGameState: data.lobbyGameState,
+            }));
+            break;
+          default:
+            setMessage('Unrecognized type in status message received.');
+            break;
+        }
+      });
+
+      onEventWithCB(Shared.ServerSocketEvent.GAMEACTION, (data) => {
+        switch (data.type) {
+          case Shared.ServerMessageType.GAMESTARTSUCCESS:
+            console.log('gameState::: ', data.gameState);
+            setGame((game) => ({
+              ...game,
+              phase: GameContentPhase.INGAME,
+              gameState: data.gameState,
+              roomState: data.roomState,
+              isLobbyGame: false,
+            }));
+            showSnackbar('Game Started...');
+            break;
+          case Shared.ServerMessageType.GAMESTARTFAIL:
+            console.log('shibai', data.message);
+            showSnackbar(data.message);
+            setMessage(data.message);
+            break;
+          default:
+            console.log('default');
+            setMessage('Unrecognized type in status message received.');
+            break;
+        }
       });
     }
 
@@ -355,10 +424,9 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     seatNum
       ? emitEventWithData(Shared.ClientSocketEvent.LOBBYGAMETOGGLEASEAT, {
           seatNum,
-          gameNum: game.gameName,
         })
       : emitEventWithData(Shared.ClientSocketEvent.LOBBYGAMETOGGLEASEAT, {
-          gameNum: game.gameName,
+          roomNum: game.gameName,
         });
   };
 
@@ -366,6 +434,26 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     emitEventWithData(Shared.ClientSocketEvent.JOINGAME, {
       roomNum: roomNum,
     });
+  };
+
+  const shuffleCardsHandle = (wild?: boolean) => {
+    if (wild) {
+      emitEventWithData(Shared.ClientSocketEvent.SHUFFLECARDS, { wildMode: wild });
+    } else {
+      emitEvent(Shared.ClientSocketEvent.SHUFFLECARDS);
+    }
+  };
+
+  const roleRevealedHandle = () => {
+    emitEvent(Shared.ClientSocketEvent.REVEALROLE);
+  };
+
+  const wildModeToggleHandle = () => {
+    emitEvent(Shared.ClientSocketEvent.TOGGLEGAMEMODE);
+  };
+
+  const sendMessage = (message: gameActionMessage) => {
+    emitEventWithData(Shared.ClientSocketEvent.GAMEACTION, message);
   };
 
   let content = null;
@@ -462,10 +550,16 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
         <LobbyGameWaiting
           username={username}
           lobbyGameState={lobby.lobbyGameState}
-          lobbyGamesSeats={lobby.lobbyGamesSeats}
           toggleSeat={toggleSeatHandle}
+          shuffleCards={shuffleCardsHandle}
+          roleRevealed={roleRevealedHandle}
+          wildModeToggle={wildModeToggleHandle}
+          sendMessage={sendMessage}
         />
       );
+      break;
+    case GameContentPhase.INGAME:
+      content = <InGame gameState={game.gameState} roomState={game.roomState} username={username}/>;
       break;
     case GameContentPhase.DISCONNECTED:
       content = (
@@ -480,8 +574,6 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
           </Button>
         </>
       );
-      break;
-    case GameContentPhase.INGAME:
       break;
     default:
       content = (
@@ -509,7 +601,8 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
         }
       />
       {game.phase !== GameContentPhase.CREATEGAME &&
-        game.phase !== GameContentPhase.INLOBBYGAME && <Logo />}
+        game.phase !== GameContentPhase.INLOBBYGAME &&
+        game.phase !== GameContentPhase.INGAME && <Logo />}
       {content}
       {/* <Button
         mode="outlined"
