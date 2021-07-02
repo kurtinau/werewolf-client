@@ -14,7 +14,23 @@ export interface gameSettings {
   mysticwolf?: boolean;
 }
 
-const SocketEndpoint = 'http://192.168.1.103:7000';
+interface toggleSeatData {
+  seatNum?: number;
+}
+
+interface joinGameData {
+  roomNum: string;
+}
+
+interface shuffleCardsModeData {
+  wildMode?: boolean;
+}
+
+export interface gameActionMessage {
+  type: string;
+}
+
+const SocketEndpoint = 'http://192.168.1.120:7000';
 let socket: Socket;
 export const initiateSocket = (name: string) => {
   socket = io(SocketEndpoint, {
@@ -49,8 +65,13 @@ export const onEventWithCB = (eventName: string, cb: (data?: any) => void) => {
 export const emitEvent = (eventName: string) => {
   if (socket) socket.emit(eventName);
 };
-export const emitEventWithData = (eventName: string, data: gameSettings) => {
-  if (socket) socket.emit(eventName, data);
+export const emitEventWithData = (
+  eventName: string,
+  data: gameSettings | toggleSeatData | joinGameData | shuffleCardsModeData | gameActionMessage,
+) => {
+  if (socket) {
+    socket.emit(eventName, data);
+  }
 };
 
 export const connectError = () => {

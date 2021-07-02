@@ -1,4 +1,4 @@
-export function nameValidator(name) {
-  if (!name) return "Name can't be empty."
+export function nameValidator(name:string) {
+  if (!name.trim()) return "Name can't be empty."
   return ''
 }

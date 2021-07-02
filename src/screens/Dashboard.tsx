@@ -25,6 +25,7 @@ import LobbyGameWaiting from '../components/Lobby/LobbyGameWaiting';
 import RoomHeader from '../components/RoomHeader';
 import InGame from '../components/InGame';
 
+
 const GameContentPhase = {
   INITIAL: 'initial',
   AWAITINGINITIALSTATUS: 'awaitingInitialStatus',
@@ -452,6 +453,10 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
     emitEvent(Shared.ClientSocketEvent.TOGGLEGAMEMODE);
   };
 
+  const startGameHandle = () => {
+    emitEvent(Shared.ClientSocketEvent.STARTGAME);
+  }
+
   const sendMessage = (message: gameActionMessage) => {
     emitEventWithData(Shared.ClientSocketEvent.GAMEACTION, message);
   };
@@ -554,12 +559,14 @@ export default function Dashboard({ navigation, route }: DASHBOARD_SCREEN_PROPS)
           shuffleCards={shuffleCardsHandle}
           roleRevealed={roleRevealedHandle}
           wildModeToggle={wildModeToggleHandle}
-          sendMessage={sendMessage}
+          startGame = {startGameHandle}
         />
       );
       break;
     case GameContentPhase.INGAME:
-      content = <InGame gameState={game.gameState} roomState={game.roomState} username={username}/>;
+      content = (
+        <InGame gameState={game.gameState} roomState={game.roomState} username={username} sendMessage={sendMessage}/>
+      );
       break;
     case GameContentPhase.DISCONNECTED:
       content = (

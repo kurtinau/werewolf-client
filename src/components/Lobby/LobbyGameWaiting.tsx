@@ -29,9 +29,10 @@ import { theme } from '../../core/theme';
 import Info from './Info';
 import Seat from './Seat';
 import { ClientMessageType, LobbyGameState } from '../../common/Shared';
-import Fab from '../Fab';
+// import Fab from '../Fab/Fab';
 import { gameActionMessage } from '../../utils/Socket';
 import Paragraph from '../Paragraph';
+import Fab from '../Fab';
 
 const LobbyGameWaiting = ({
   username,
@@ -40,7 +41,7 @@ const LobbyGameWaiting = ({
   shuffleCards,
   roleRevealed,
   wildModeToggle,
-  sendMessage,
+  startGame,
 }: {
   username: string;
   lobbyGameState: LobbyGameState;
@@ -48,7 +49,7 @@ const LobbyGameWaiting = ({
   shuffleCards: (wild?: boolean) => void;
   roleRevealed: () => void;
   wildModeToggle: () => void;
-  sendMessage: (message: gameActionMessage) => void;
+  startGame: () => void;
 }) => {
   const [visible, setVisible] = useState(false);
   const hideDialog = () => setVisible(false);
@@ -96,17 +97,17 @@ const LobbyGameWaiting = ({
     return seats ? Object.keys(seats).length === Object.keys(players).length : false;
   };
 
-  const startGamePressedHandle = (wild: boolean) => {
+  const startGamePressedHandle = () => {
     if (players[username].role === -1) {
       Alert.alert('Please shuffle cards before starting game.');
     } else {
-      if (wild) {
+      if (wildMode) {
         if (checkAllAttendedPlayersHaveAseat()) {
-          sendMessage({ type: ClientMessageType.GAMESTART });
+          startGame();
         }
       } else {
         if (checkAllPlayersHaveAseat()) {
-          sendMessage({ type: ClientMessageType.GAMESTART });
+          startGame();
         } else {
           Alert.alert('There are players not ready or Not enough players.');
         }
@@ -114,11 +115,11 @@ const LobbyGameWaiting = ({
     }
   };
 
-  const shufflePressedHandle = (wild: boolean) => {
-    if (wild) {
+  const shufflePressedHandle = () => {
+    if (wildMode) {
       if (checkAllAttendedPlayersHaveAseat()) {
         console.log('wild mode shuffle cards called.');
-        shuffleCards(wild);
+        shuffleCards(wildMode);
       } else {
         Alert.alert('All players must have a sit.');
       }

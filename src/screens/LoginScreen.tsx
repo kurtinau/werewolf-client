@@ -31,7 +31,7 @@ export default function LoginScreen({ navigation }: LOGIN_SCREEN_PROPS) {
     }
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Dashboard', params: { username: name.value } }],
+      routes: [{ name: 'Dashboard', params: { username: name.value.trim() } }],
     });
   };
 
