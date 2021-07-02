@@ -1,4 +1,3 @@
-
 export const Phases = {
   STARTED: 'started',
   DAYTIME: 'daytime',
@@ -7,6 +6,7 @@ export const Phases = {
   DAYTIMEVOTEFAILED: 'daytimeVoteFailed',
   NIGHTTIME: 'nighttime',
   NIGHTTIMEVOTING: 'nighttimeVoting',
+  NIGHTTIMEVOTINGDONE: 'nightTimeVotingDone',
   NIGHTTIMEVOTEFAILED: 'nighttimeVoteFailed',
   ENDOFNIGHT: 'endOfNight',
   OVER: 'over',
@@ -32,9 +32,10 @@ export const ClientMessageType = {
   GAMESTART: "gameStart",
   GAMESTATEREQ: "gameStateReq",
   SUGGESTTARGET: "suggestTarget",
+  SKILLSCAST: "skillsCast",
   VOTECAST: "voteCast",
   ACKNOWLEDGE: "acknowledge", // acknowledge results of end of day and end of night
-}
+};
 
 export const ServerMessageType = {
   GAMESTARTFAIL: "gameStartFail",
@@ -42,14 +43,15 @@ export const ServerMessageType = {
   GAMESTATEINFO: "gameStateInfo",
   ACKNOWLEDGEMENT: "acknowledgement",
   VOTECAST: "voteCast",
-}
+  SKILLSCAST: "skillsCast",
+};
 
 export const ServerSocketEvent = {
   // SYSTEMNOTICE: "systemNotice", // notices from server unrelated to the happenings inside the game
-  INITIALSTATUSREPLY: "initialStatusReply", // excludes state details
-  STATUSREPLY: "statusReply", // reply to STATUSREQUEST by client containing game information
-  GAMEACTION: "gameAction", // action related to the context of the game itself
-  LOBBYGAMEUPDATE: "lobbyGameUpdate",
+  INITIALSTATUSREPLY: 'initialStatusReply', // excludes state details
+  STATUSREPLY: 'statusReply', // reply to STATUSREQUEST by client containing game information
+  GAMEACTION: 'gameAction', // action related to the context of the game itself
+  LOBBYGAMEUPDATE: 'lobbyGameUpdate',
   // LOBBYUPDATE: "lobbyUpdate", // update to the status of the game lobby (e.g. a player joins/leaves a game)
   // LOBBYSTATEREPLY: "lobbyState", // message containing complete state of lobby
   // LOBBYGAMESTATEREPLY: "lobbyGameState", // message containing complete state of a lobby game
@@ -57,34 +59,35 @@ export const ServerSocketEvent = {
   // LOBBYUPDATESUNSUBSCRIBED: "lobbyUpdatesUnsubscribed",
   CREATEGAMEOUTCOME: 'createGameOutcome', // outcome of a create game request, enumerated in CreateGameOutcome
   // LEAVEGAMEOUTCOME: "leaveGameOutcome",
-  JOINGAMEOUTCOME: "joinGameOutcome",
+  JOINGAMEOUTCOME: 'joinGameOutcome',
   // GAMESTARTED: "gameStarted", // sent when the last player joins a lobby game and the game controller is created
   // // clients must request initial status update via GAMEACTION message
   // GAMEENDED: "gameEnded", // clients are notified of the start to a game via GAMEACTION messages
   // REMOVEDFROMGAME: "removedFromGame", // removed from game due to exceptional circumstances
   // LOBBYGAMECHATMESSAGE: "lobbyGameChatMessage",
   // LOBBYGAMESTATEUPDATE: "lobbyGameStateUpdate"
-  USEREXISTED:"usernameExisted",
-  CONNECTSUCCESS:"connectSuccess",
-  SHUFFLECARDSOUTCOME: "shuffleCardsOutcome",
+  USEREXISTED: 'usernameExisted',
+  CONNECTSUCCESS: 'connectSuccess',
+  SHUFFLECARDSOUTCOME: 'shuffleCardsOutcome',
 };
 
 export const ClientSocketEvent = {
-    GAMEACTION: "gameAction", // action related to the context of the game itself
-    INITIALSTATUSREQUEST: "initialStatusRequest", // request for reply that excludes state details
-    STATUSREQUEST: "statusRequest", // request from client asking for the client's status (e.g. whether it is in a game)
-    // LOBBYSTATEREQUEST: "lobbyStateRequest", // client message asking for complete state of lobby
-    // LOBBYGAMESTATEREQUEST: "lobbyGameStateRequest",
-    SUBSCRIBELOBBYUPDATES: "subscribeLobbyUpdates", // request to join lobby updates room
-    UNSUBSCRIBELOBBYUPDATES: "unsubscribeLobbyUpdates",
-    JOINGAME: "joinGame",
-    CREATEGAME: "createGame",
-    // LEAVEGAME: "leaveGame", // leave game in lobby before it has started. Currenlty no way to leave started games.
-    LOBBYGAMETOGGLEASEAT: "lobbyGameToggleASeat",
-    SHUFFLECARDS:"shuffleCards",
-    REVEALROLE:"revealRole",
-    TOGGLEGAMEMODE: "toggleGameMode",
-}
+  GAMEACTION: 'gameAction', // action related to the context of the game itself
+  INITIALSTATUSREQUEST: 'initialStatusRequest', // request for reply that excludes state details
+  STATUSREQUEST: 'statusRequest', // request from client asking for the client's status (e.g. whether it is in a game)
+  // LOBBYSTATEREQUEST: "lobbyStateRequest", // client message asking for complete state of lobby
+  // LOBBYGAMESTATEREQUEST: "lobbyGameStateRequest",
+  SUBSCRIBELOBBYUPDATES: 'subscribeLobbyUpdates', // request to join lobby updates room
+  UNSUBSCRIBELOBBYUPDATES: 'unsubscribeLobbyUpdates',
+  JOINGAME: 'joinGame',
+  CREATEGAME: 'createGame',
+  STARTGAME: "startGame",
+  // LEAVEGAME: "leaveGame", // leave game in lobby before it has started. Currenlty no way to leave started games.
+  LOBBYGAMETOGGLEASEAT: 'lobbyGameToggleASeat',
+  SHUFFLECARDS: 'shuffleCards',
+  REVEALROLE: 'revealRole',
+  TOGGLEGAMEMODE: 'toggleGameMode',
+};
 
 export const CreateGameOutcome = {
   ALREADYINGAME: 'alreadyInGame',
@@ -98,39 +101,38 @@ export const CreateGameOutcome = {
 };
 
 export const LeaveGameOutcome = {
-  NOTINGAME: "notInGame",
-  GAMESTARTED: "gameStarted",
-  INTERNALERROR: "internalError",
-  SUCCESS: "success"
-}
+  NOTINGAME: 'notInGame',
+  GAMESTARTED: 'gameStarted',
+  INTERNALERROR: 'internalError',
+  SUCCESS: 'success',
+};
 
 export const JoinGameOutcome = {
-  MISSINGINFO: "missingInfo",
-  ALREADYINGAME: "alreadyInGame",
-  GAMESTARTED: "gameStarted", // game started as a result of player joining
-  DOESNOTEXIST: "doesNotExist",
-  SUCCESS: "success",
-  INTERNALERROR: "internalError",
-  GAMEFULL: "gameFull",
-}
+  MISSINGINFO: 'missingInfo',
+  ALREADYINGAME: 'alreadyInGame',
+  GAMESTARTED: 'gameStarted', // game started as a result of player joining
+  DOESNOTEXIST: 'doesNotExist',
+  SUCCESS: 'success',
+  INTERNALERROR: 'internalError',
+  GAMEFULL: 'gameFull',
+};
 
 export const LobbyGameUpdate = {
   // GAMECREATED: "gameCreated",
-  PLAYERLEFT: "playerLeft",
-  PLAYERJOINED: "playerJoined",
-  GAMEDELETED: "gameDeleted",
-  GAMESTARTED: "gameStarted",
-  SEATSCHANGED: "seatsChanged",
-  SHUFFLECARDS: "shuffleCards",
-  MODECHANGED: "modeChanged"
+  PLAYERLEFT: 'playerLeft',
+  PLAYERJOINED: 'playerJoined',
+  GAMEDELETED: 'gameDeleted',
+  GAMESTARTED: 'gameStarted',
+  SEATSCHANGED: 'seatsChanged',
+  SHUFFLECARDS: 'shuffleCards',
+  MODECHANGED: 'modeChanged',
 };
 
-
 export const StatusType = {
-  INGAME: "inGame",
-  INLOBBYGAME: "inLobbyGame",
-  INLOBBY: "inLobby"
-}
+  INGAME: 'inGame',
+  INLOBBYGAME: 'inLobbyGame',
+  INLOBBY: 'inLobby',
+};
 
 export class LobbyPlayerDetail {
   name: string;
@@ -148,7 +150,7 @@ export class LobbyPlayerDetail {
 export class LobbyGameState {
   maxPlayers: number;
   numWerewolves: number;
-  players: {[K in string]: LobbyPlayerDetail};
+  players: { [K in string]: LobbyPlayerDetail };
   owner: string;
   wildMode: boolean;
   seats: { [K in number]: string };
@@ -157,23 +159,23 @@ export class LobbyGameState {
     this.maxPlayers = 0;
     this.numWerewolves = 0;
     this.players = {};
-    this.owner = "";
+    this.owner = '';
     this.wildMode = false;
     this.seats = {};
-    this.configOverview = "";
+    this.configOverview = '';
   }
 }
 
-export class RoomState{
+export class RoomState {
   owner: string;
   wildMode: boolean;
   seats: { [K in number]: string };
   configOverview: string;
-  constructor(){
-    this.owner='';
-    this.wildMode=false;
+  constructor() {
+    this.owner = '';
+    this.wildMode = false;
     this.seats = {};
-    this.configOverview = "";
+    this.configOverview = '';
   }
 }
 
@@ -183,7 +185,7 @@ export class PlayerDetail {
   hasSkills: boolean;
   role: number;
   seatNum: number;
-  constructor(isWerewolf: boolean, hasSkills: boolean,role:number,seatNum:number) {
+  constructor(isWerewolf: boolean, hasSkills: boolean, role: number, seatNum: number) {
     this.isWerewolf = isWerewolf;
     this.isAlive = true;
     this.hasSkills = false;
@@ -193,18 +195,22 @@ export class PlayerDetail {
 }
 
 export class GameState {
-  phase:string;
-    players: {[K in string]: PlayerDetail};
-    votes: {};
-    acks: Array<string>;
-    chosenPlayer : string
-    constructor(){
-        this.phase = Phases.STARTED
-        this.players = {} // player name -> Shared.PlayerDetails object
-        this.votes = {} // player name -> value; true = yea, false = nay
-        this.acks = [] // acknowledgements for information displayed in certain phases
-        this.chosenPlayer = '' // player chosen for voting or player just killed
-    }
+  phase: string;
+  players: { [K in string]: PlayerDetail };
+  votes: {};
+  acks: Array<string>;
+  chosenPlayer: string;
+  rolesName: string[];
+  leftoverRoles: string[];
+  constructor() {
+    this.phase = Phases.STARTED;
+    this.players = {}; // player name -> Shared.PlayerDetails object
+    this.votes = {}; // player name -> value; true = yea, false = nay
+    this.acks = []; // acknowledgements for information displayed in certain phases
+    this.chosenPlayer = ''; // player chosen for voting or player just killed
+    this.rolesName = [];
+    this.leftoverRoles = [];
+  }
 }
 
 export interface GameConfig {
